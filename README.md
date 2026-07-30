@@ -39,8 +39,15 @@ interview, not just runnable.
 | `dim_date`        | 1 row per calendar day              | `date` (natural key)    |
 | `dim_product`     | 1 row per distinct product record   | `product_key` (surrogate) |
 | `dim_customer`    | 1 row per distinct customer record  | `customer_key` (surrogate) |
-| `dim_geography`   | 1 row per distinct location         | `geography_key` (surrogate) |
+| `dim_geography_city` | 1 row per distinct city/state/country | `geography_key` (surrogate) |
 | `fact_sales`      | 1 row per order line item           | `row_id`                |
+
+**Note:** `dim_geography_city` replaced an earlier `dim_geography`
+built at postal-code grain, which produced multiple rows per city (a
+grain the reporting requirement never actually needed). The full
+diagnostic trail — how the wrong grain was found, the rebuild, and a
+foreign-key constraint hit while retiring the old table — is in
+`docs/02-troubleshooting.md`, entry 5.
 
 See `docs/01-architecture.md` for the reasoning behind each of those
 grain and key decisions — particularly why three of the four dimensions
@@ -59,9 +66,11 @@ use a surrogate key instead of the natural ID from the source file.
    if you hit permission or path errors.
 6. Run the script top to bottom, section by section, verifying counts
    at each checkpoint before moving to the next.
-7. Connect Power BI (Get Data → MySQL Database), import all five
-   tables, and build relationships **manually** — do not trust
-   autodetect, especially for the `dim_date` role-playing relationship.
+7. Connect Power BI (Get Data → MySQL Database), import the five
+   model tables (`dim_date`, `dim_product`, `dim_customer`,
+   `dim_geography_city`, `fact_sales`), and build relationships
+   **manually** — do not trust autodetect, especially for the
+   `dim_date` role-playing relationship.
 
 ## Known data quirks in this dataset (worth knowing before you build)
 
