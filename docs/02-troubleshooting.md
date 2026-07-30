@@ -116,6 +116,80 @@ issue, not a cosmetic one, even though it doesn't stop the load.
 
 ---
 
+## 5. `dim_geography` was built at the wrong grain — rebuilt as `dim_geography_city`
+
+**What happened:** a duplicate check on `dim_geography` (normalizing
+city/state casing) returned multiple `geography_key` values for the
+same city — e.g. 3 rows for Chicago, 6 for Los Angeles, 4 for Houston.
+
+**Root cause:** the original table was built with:
+
+```sql
+INSERT INTO dim_geography (country, region, state, city, postal_code)
+SELECT DISTINCT country, region, state, city, postal_code
+FROM stg_superstore;
+```
+
+`postal_code` was included in the `DISTINCT` before the table's
+intended grain was explicitly decided. Chicago genuinely has multiple
+ZIP codes in the source data, so each one produced its own row and its
+own surrogate key — this wasn't corrupted data, every "duplicate"
+traced back to a real, different postal code:
+
+```
+city, state, postal_code, geography_key
+'Chicago', 'Illinois', '60610', '27'
+'Chicago', 'Illinois', '60623', '37'
+'Chicago', 'Illinois', '60653', '156'
+```
+
+**Confirmed:** ZIP-level detail wasn't needed by any planned report or
+dashboard — city-level was sufficient. The table was rebuilt as
+`dim_geography_city` at city/state/country grain (Step 6 in
+`sql/superstore_star_schema.sql`), and `fact_sales.geography_key` was
+remapped by joining through `stg_superstore` — the only table that
+still had row-level city/state/country, since `fact_sales` itself only
+stores the surrogate key.
+
+**Two errors hit during the rebuild, worth recording separately:**
+
+- `Error Code: 2013. Lost connection to MySQL server during query` —
+  hit mid-remap. Ruled out server timeouts (all timeout variables were
+  generous) and missing indexes (both tables involved were indexed,
+  and at this dataset's scale — `fact_sales`: 10,426 rows;
+  `stg_superstore`: 5,009; `dim_geography_city`: 604 — a 3-table join
+  runs in milliseconds regardless of indexing). Concluded it was a
+  transient client/connection drop; re-running the identical query
+  completed successfully.
+- `Error Code: 3730. Cannot drop table 'dim_geography' referenced by a
+  foreign key constraint 'fact_sales_ibfk_5' on table 'fact_sales'` —
+  hit when retiring the old table. The fact table's data had already
+  been remapped to the new dimension, but the foreign key constraint
+  was still physically pointed at the old table. Fixed by dropping the
+  old constraint and adding a new one against `dim_geography_city`
+  before dropping the old table:
+
+```sql
+ALTER TABLE fact_sales DROP FOREIGN KEY fact_sales_ibfk_5;
+
+ALTER TABLE fact_sales
+ADD CONSTRAINT fk_fact_geography_city
+FOREIGN KEY (geography_key) REFERENCES dim_geography_city(geography_key);
+
+DROP TABLE dim_geography;
+```
+
+**Lesson:** decide a dimension's grain on paper before writing the
+`SELECT DISTINCT` that builds it — a diagnostic query run without a
+declared expected grain will keep flagging correct design decisions as
+bugs. Separately: updating the data a foreign key references doesn't
+move the constraint itself; it has to be dropped and recreated against
+the new parent table explicitly, and a "lost connection" error at
+small table sizes is almost always environmental, not a performance
+problem worth optimizing around.
+
+---
+
 ## Verification checklist used after every load and every join
 
 Run after `stg_superstore` load, and again after `fact_sales` is
