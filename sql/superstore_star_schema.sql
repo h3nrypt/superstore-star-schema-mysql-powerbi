@@ -181,24 +181,34 @@ FROM stg_superstore;
 
 
 -- ============================================================
--- STEP 6: DIM_GEOGRAPHY
--- Grain = one row per unique location combination, not per
--- customer, not per order. Postal_code kept as VARCHAR — it can
--- have leading zeros and is never used for math.
+-- STEP 6: DIM_GEOGRAPHY_CITY
+-- Grain = one row per distinct city/state/country combination.
+-- Decided explicitly, in writing, before this DISTINCT was run —
+-- see docs/02-troubleshooting.md entry 5 for what happens when
+-- you skip that step. An earlier version of this table included
+-- postal_code in the DISTINCT, which produced multiple rows per
+-- city (Chicago alone had 3 — one per ZIP), because ZIP-level
+-- detail was never actually needed by any downstream report.
 -- ============================================================
-DROP TABLE IF EXISTS dim_geography;
-CREATE TABLE dim_geography (
+DROP TABLE IF EXISTS dim_geography_city;
+CREATE TABLE dim_geography_city (
     geography_key INT AUTO_INCREMENT PRIMARY KEY,
     country       VARCHAR(50),
     region        VARCHAR(20),
     state         VARCHAR(50),
-    city          VARCHAR(50),
-    postal_code   VARCHAR(10)
+    city          VARCHAR(50)
 );
 
-INSERT INTO dim_geography (country, region, state, city, postal_code)
-SELECT DISTINCT country, region, state, city, postal_code
+INSERT INTO dim_geography_city (country, region, state, city)
+SELECT DISTINCT country, region, state, city
 FROM stg_superstore;
+
+-- Verify the grain is actually clean before anything downstream
+-- joins to this table — must return 0 rows.
+SELECT country, region, state, city, COUNT(*)
+FROM dim_geography_city
+GROUP BY country, region, state, city
+HAVING COUNT(*) > 1;
 
 
 -- ============================================================
@@ -234,7 +244,7 @@ CREATE TABLE fact_sales (
     FOREIGN KEY (ship_date)     REFERENCES dim_date(`date`),
     FOREIGN KEY (customer_key)  REFERENCES dim_customer(customer_key),
     FOREIGN KEY (product_key)   REFERENCES dim_product(product_key),
-    FOREIGN KEY (geography_key) REFERENCES dim_geography(geography_key)
+    FOREIGN KEY (geography_key) REFERENCES dim_geography_city(geography_key)
 );
 
 -- Populate by joining staging back to each dimension to resolve
@@ -257,10 +267,9 @@ JOIN dim_product p
    AND p.product_name = s.product_name
    AND p.category = s.category
    AND p.sub_category = s.sub_category
-JOIN dim_geography g
+JOIN dim_geography_city g
     ON g.country = s.country AND g.region = s.region
-   AND g.state = s.state AND g.city = s.city
-   AND g.postal_code <=> s.postal_code;  -- <=> handles NULL postal codes safely
+   AND g.state = s.state AND g.city = s.city;
 
 
 -- ============================================================
@@ -282,6 +291,12 @@ WHERE c.customer_key IS NULL;
 SELECT COUNT(*) FROM stg_superstore s
 LEFT JOIN dim_product p ON p.product_id = s.product_id AND p.product_name = s.product_name
 WHERE p.product_key IS NULL;
+
+SELECT COUNT(*) FROM stg_superstore s
+LEFT JOIN dim_geography_city g
+    ON g.country = s.country AND g.region = s.region
+   AND g.state = s.state AND g.city = s.city
+WHERE g.geography_key IS NULL;
 
 -- Total sales must match between staging and fact — proves no
 -- rows were silently dropped or duplicated by the JOINs
