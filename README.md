@@ -28,7 +28,9 @@ interview, not just runnable.
 │   └── superstore_star_schema.sql     <- full build script, staging → dims → fact
 └── docs/
     ├── 01-architecture.md             <- design decisions and why
-    └── 02-troubleshooting.md          <- real errors hit, root cause, fix
+    ├── 02-troubleshooting.md          <- real errors hit, root cause, fix
+    └── 03-dax-measures.md             <- KPI card DAX + conditional formatting reference
+
 ```
 
 ## Schema overview
