@@ -30,7 +30,7 @@ errors hit and root-caused during this project.
 
 See [`docs/03-dax-measures.md`](docs/03-dax-measures.md) for the DAX measures 
 powering the Sales Growth KPI card and conditional formatting logic.
----
+```
 ├── README.md                          <- you are here
 ├── sql/
 │   └── superstore_star_schema.sql     <- full build script, staging → dims → fact
@@ -38,8 +38,7 @@ powering the Sales Growth KPI card and conditional formatting logic.
     ├── 01-architecture.md             <- design decisions and why
     ├── 02-troubleshooting.md          <- real errors hit, root cause, fix
     └── 03-dax-measures.md             <- KPI card DAX + conditional formatting reference
-
----
+```
 
 ## Schema overview
 
