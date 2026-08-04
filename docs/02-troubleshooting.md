@@ -216,3 +216,25 @@ SELECT
 Row count matching is necessary but not sufficient — it confirms rows
 arrived, not that they arrived correctly. The total-sales comparison is
 what actually confirms correctness.
+
+## Date column missing from Report View
+
+**Symptom:** `dim_date[date]` column exists in Data view with correct Date data 
+type, but does not appear in the Fields pane in Report view.
+
+**Root cause:** The column had "Hide in Report View" enabled — a flag independent 
+of the column's existence in the model. Hidden columns remain fully usable in DAX 
+(time intelligence functions like DATEADD continued working) but are suppressed 
+from the Report view Fields pane and drag-and-drop.
+
+**Fix:** Model view → select `dim_date` table → right-click the `date` column → 
+toggle off "Hide in Report View." Alternatively via Data view, same right-click 
+path.
+
+**Note:** This is often intentional design — hiding raw date columns and exposing 
+only Year/Month/Quarter hierarchy for slicers is common practice. Confirm before 
+assuming it's a bug.
+
+
+
+
