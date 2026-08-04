@@ -22,7 +22,15 @@ interview, not just runnable.
 
 ## Repo structure
 
-```
+See [`docs/01-architecture.md`](docs/01-architecture.md) for the design decisions 
+behind the schema — grain, keys, and why three of four dimensions use surrogate keys.
+
+See [`docs/02-troubleshooting.md`](docs/02-troubleshooting.md) for the real build 
+errors hit and root-caused during this project.
+
+See [`docs/03-dax-measures.md`](docs/03-dax-measures.md) for the DAX measures 
+powering the Sales Growth KPI card and conditional formatting logic.
+
 ├── README.md                          <- you are here
 ├── sql/
 │   └── superstore_star_schema.sql     <- full build script, staging → dims → fact
@@ -31,7 +39,7 @@ interview, not just runnable.
     ├── 02-troubleshooting.md          <- real errors hit, root cause, fix
     └── 03-dax-measures.md             <- KPI card DAX + conditional formatting reference
 
-```
+
 
 ## Schema overview
 
