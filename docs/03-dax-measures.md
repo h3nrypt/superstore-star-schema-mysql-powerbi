@@ -65,11 +65,6 @@ SWITCH(
 )
 
 
-### Sales Growth
-Returns a formatted month-over-month percentage change with directional arrow indicator.
-Handles the first-period edge case where no prior month exists.
-
-```dax
 Profit Growth % = 
 VAR CM = [Total Profit]
 VAR LM = 
