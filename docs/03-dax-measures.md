@@ -65,3 +65,26 @@ SWITCH(
 )
 
 
+### Sales Growth
+Returns a formatted month-over-month percentage change with directional arrow indicator.
+Handles the first-period edge case where no prior month exists.
+
+```dax
+Profit Growth % = 
+VAR CM = [Total Profit]
+VAR LM = 
+    CALCULATE(
+        [Total Profit],
+        DATEADD('Dim Date'[date], -1, MONTH)
+    )
+VAR _perc = FORMAT(DIVIDE(CM - LM, LM), "0.0%;0.0%")
+RETURN
+IF(
+    ISBLANK(LM),
+    "N/A",
+    IF(
+        CM - LM >= 0,
+        UNICHAR(9650) & " " & _perc,
+        UNICHAR(9660) & " " & _perc
+    )
+)
