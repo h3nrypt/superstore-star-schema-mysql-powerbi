@@ -41,6 +41,7 @@ powering the Sales Growth KPI card and conditional formatting logic.
 │   └── 03-dax-measures.md
 └── screenshots/
     └── dashboard-overview.png
+
 ```
 
 ## Schema overview
@@ -64,6 +65,12 @@ foreign-key constraint hit while retiring the old table — is in
 See `docs/01-architecture.md` for the reasoning behind each of those
 grain and key decisions — particularly why three of the four dimensions
 use a surrogate key instead of the natural ID from the source file.
+
+## Dashboard Preview
+
+![Superstore Sales Dashboard](screenshots/dashboard-overview.png)
+
+Full interactive file: [`superstore_dashboard.pbix`](superstore_dashboard.pbix)
 
 ## Quick start
 
