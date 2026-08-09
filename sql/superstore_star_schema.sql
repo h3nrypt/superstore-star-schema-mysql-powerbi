@@ -110,7 +110,7 @@ STEP 4: DIM_PRODUCT
 Product ID is NOT a reliable unique key. 
 The same Product ID occasionally appears with a different Product Name due to data entry inconsistency in the source file. If product_id is assigned as the primary key,the INSERT will throw a duplicate key error or silently drop rows.
 Fix: surrogate key (product_key, auto incrementing int) as the real primary key. product_id stays as a plain attribute.
-   ============================================================ */
+   ============================================== */
 DROP TABLE IF EXISTS dim_product;
 CREATE TABLE dim_product (
     product_key  INT AUTO_INCREMENT PRIMARY KEY,
@@ -150,11 +150,11 @@ SELECT DISTINCT customer_id, customer_name, segment
 FROM stg_superstore;
 
 
-/* ============================================================
+/* ============================================
 STEP 6: DIM_GEOGRAPHY_CITY
 Grain = one row per distinct city/state/country combination.
 An earlier version of this table included postal_code in the DISTINCT, which produced multiple rows per city (Chicago alone had 3 — one per ZIP),because ZIP level detail was not required for the analytical metrics.
-   ============================================================ */
+   =============================================== */
 
 DROP TABLE IF EXISTS dim_geography_city;
 CREATE TABLE dim_geography_city (
