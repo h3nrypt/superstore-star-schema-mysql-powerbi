@@ -59,10 +59,10 @@ SELECT COUNT(*) AS staging_row_count FROM stg_superstore;
 SELECT COUNT(*) FROM stg_superstore WHERE order_date IS NULL OR ship_date IS NULL;
 
 
-/* ================================================
+/* ============================================
 STEP 3: DIM_DATE
 Rule: a Power BI date table must be CONTINUOUS — every single calendar day between your earliest and latest date, even days with zero sales.
-   ================================================= */
+   ============================================ */
 
 DROP TABLE IF EXISTS dim_date;
 CREATE TABLE dim_date (
@@ -111,6 +111,7 @@ Product ID is NOT a reliable unique key.
 The same Product ID occasionally appears with a different Product Name due to data entry inconsistency in the source file. If product_id is assigned as the primary key,the INSERT will throw a duplicate key error or silently drop rows.
 Fix: surrogate key (product_key, auto incrementing int) as the real primary key. product_id stays as a plain attribute.
    ============================================== */
+
 DROP TABLE IF EXISTS dim_product;
 CREATE TABLE dim_product (
     product_key  INT AUTO_INCREMENT PRIMARY KEY,
