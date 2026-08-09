@@ -55,7 +55,9 @@ SET
 /* Must return 9994 */
 
 SELECT COUNT(*) AS staging_row_count FROM stg_superstore;
+
 /* Must return 0 */
+
 SELECT COUNT(*) FROM stg_superstore WHERE order_date IS NULL OR ship_date IS NULL;
 
 
