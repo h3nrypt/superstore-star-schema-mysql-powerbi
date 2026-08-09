@@ -106,7 +106,7 @@ SET
 
 -- ============================================================
 -- STEP 4: DIM_PRODUCT
--- Gotcha specific to THIS dataset: Product ID is NOT a reliable
+-- Product ID is NOT a reliable
 -- unique key. The same Product ID occasionally appears with a
 -- different Product Name (data entry inconsistency in the source
 -- file). If you make product_id the primary key, your INSERT
