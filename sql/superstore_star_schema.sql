@@ -1,15 +1,16 @@
-/* ============================================================
-   SUPERSTORE STAR SCHEMA — MySQL build script
-   Method: Staging table -> Dimension tables -> Fact table
-   Author: built step-by-step. 
-   ============================================================ */
+/* ================================================
+SUPERSTORE STAR SCHEMA — MySQL build script
+Method: Staging table -> Dimension tables -> Fact table Author: built step-by-step. 
+   ================================================ */
 
 /* STEP 0: Database */
+
 CREATE DATABASE IF NOT EXISTS superstore_dw;
 USE superstore_dw;
 
 /* STEP 1: STAGING TABLE
    Purpose: land the CSV exactly as it is, zero transformation. */
+
 DROP TABLE IF EXISTS stg_superstore;
 CREATE TABLE stg_superstore (
     row_id        INT,
@@ -36,6 +37,7 @@ CREATE TABLE stg_superstore (
 );
 
 /* STEP 2: LOAD THE CSV — using LOAD DATA LOCAL INFILE */
+
 LOAD DATA LOCAL INFILE '/path/to/Sample_-_Superstore.csv'
 INTO TABLE stg_superstore
 CHARACTER SET latin1
@@ -51,15 +53,17 @@ SET
     ship_date  = STR_TO_DATE(@ship_date,  '%m/%d/%Y');
 
 /* Must return 9994 */
+
 SELECT COUNT(*) AS staging_row_count FROM stg_superstore;
 /* Must return 0 */
 SELECT COUNT(*) FROM stg_superstore WHERE order_date IS NULL OR ship_date IS NULL;
 
 
-/* ============================================================
-   STEP 3: DIM_DATE
-   Rule: a Power BI date table must be CONTINUOUS — every single calendar day between your earliest and latest date, even days with zero sales.
-   ============================================================ */
+/* ================================================
+STEP 3: DIM_DATE
+Rule: a Power BI date table must be CONTINUOUS — every single calendar day between your earliest and latest date, even days with zero sales.
+   ================================================= */
+
 DROP TABLE IF EXISTS dim_date;
 CREATE TABLE dim_date (
     `date`       DATE PRIMARY KEY,
@@ -74,6 +78,7 @@ CREATE TABLE dim_date (
 );
 
 /* Allow enough recursion for a multi year date range */
+
 SET SESSION cte_max_recursion_depth = 10000;
 
 INSERT INTO dim_date (`date`)
@@ -86,8 +91,8 @@ WITH RECURSIVE date_range AS (
 )
 SELECT dt FROM date_range;
 
-/* Populate the descriptive columns after the fact (cheaper than
-   computing them row by row during the recursive insert) */
+/* Populate the descriptive columns after the fact (cheaper than computing them row by row during the recursive insert) */
+
 UPDATE dim_date
 SET
     year         = YEAR(`date`),
@@ -100,14 +105,11 @@ SET
     is_weekend   = CASE WHEN DAYOFWEEK(`date`) IN (1,7) THEN 1 ELSE 0 END;
 
 
-/* ============================================================
-   STEP 4: DIM_PRODUCT
-   Product ID is NOT a reliable unique key. The same Product ID 
-   occasionally appears with a different Product Name due to data entry 
-   inconsistency in the source file. If product_id is assigned as the primary key, 
-   the INSERT will throw a duplicate key error or silently drop rows.
-   Fix: surrogate key (product_key, auto incrementing int) as the
-   real primary key. product_id stays as a plain attribute.
+/* =============================================
+STEP 4: DIM_PRODUCT
+Product ID is NOT a reliable unique key. 
+The same Product ID occasionally appears with a different Product Name due to data entry inconsistency in the source file. If product_id is assigned as the primary key,the INSERT will throw a duplicate key error or silently drop rows.
+Fix: surrogate key (product_key, auto incrementing int) as the real primary key. product_id stays as a plain attribute.
    ============================================================ */
 DROP TABLE IF EXISTS dim_product;
 CREATE TABLE dim_product (
@@ -123,18 +125,18 @@ SELECT DISTINCT product_id, product_name, category, sub_category
 FROM stg_superstore;
 
 /* Run this query to audit variants — expect a non zero count */
+
 SELECT product_id, COUNT(DISTINCT product_name) AS name_variants
 FROM stg_superstore
 GROUP BY product_id
 HAVING COUNT(DISTINCT product_name) > 1;
 
 
-/* ============================================================
+/* ==============================================
    STEP 5: DIM_CUSTOMER
-   Same surrogate key logic. Customer ID is more stable than
-   Product ID in this dataset but using the same consistent pattern 
-   ensures reliability.
-   ============================================================ */
+
+   =============================================== */
+
 DROP TABLE IF EXISTS dim_customer;
 CREATE TABLE dim_customer (
     customer_key  INT AUTO_INCREMENT PRIMARY KEY,
@@ -149,12 +151,11 @@ FROM stg_superstore;
 
 
 /* ============================================================
-   STEP 6: DIM_GEOGRAPHY_CITY
-   Grain = one row per distinct city/state/country combination.
-   An earlier version of this table included postal_code in the DISTINCT, 
-   which produced multiple rows per city (Chicago alone had 3 — one per ZIP), 
-   because ZIP level detail was not required for the analytical metrics.
+STEP 6: DIM_GEOGRAPHY_CITY
+Grain = one row per distinct city/state/country combination.
+An earlier version of this table included postal_code in the DISTINCT, which produced multiple rows per city (Chicago alone had 3 — one per ZIP),because ZIP level detail was not required for the analytical metrics.
    ============================================================ */
+
 DROP TABLE IF EXISTS dim_geography_city;
 CREATE TABLE dim_geography_city (
     geography_key INT AUTO_INCREMENT PRIMARY KEY,
@@ -175,18 +176,14 @@ GROUP BY country, region, state, city
 HAVING COUNT(*) > 1;
 
 
-/* ============================================================
+/* ==============================================
    STEP 7: FACT_SALES
-   Grain = one row per Row ID (one line item per order), matching
-   the source exactly.
-  
-   order_date and ship_date BOTH reference dim_date. This is a
-   "role playing dimension" — one dimension table serving two
-   different roles in the fact table. In Power BI, only ONE of
-   these relationships can be active at a time; the inactive one
-   needs USERELATIONSHIP() in DAX or a second, duplicated date
-   table (dim_ship_date) to keep both active simultaneously.
-   ============================================================ */
+Grain = one row per Row ID (one line item per order), matching the source exactly.
+order_date and ship_date BOTH reference dim_date. This is a "role playing dimension" - one dimension table serving two different roles in the fact table. 
+In Power BI, only ONE of these relationships can be active at a time; the inactive one needs USERELATIONSHIP() in DAX or a second, duplicated date
+table (dim_ship_date) to keep both active simultaneously.
+   ================================================ */
+
 DROP TABLE IF EXISTS fact_sales;
 CREATE TABLE fact_sales (
     row_id        INT PRIMARY KEY,
@@ -208,9 +205,8 @@ CREATE TABLE fact_sales (
     FOREIGN KEY (geography_key) REFERENCES dim_geography_city(geography_key)
 );
 
-/* Populate by joining staging back to each dimension to resolve
-   the surrogate keys. Every JOIN condition matches on the SAME
-   combination of columns used to build that dimension's DISTINCT. */
+/* Populate by joining staging back to each dimension to resolve the surrogate keys. Every JOIN condition matches on the Same combination of columns used to build that dimension's DISTINCT. */
+
 INSERT INTO fact_sales (
     row_id, order_id, order_date, ship_date, ship_mode,
     customer_key, product_key, geography_key,
@@ -233,17 +229,18 @@ JOIN dim_geography_city g
    AND g.state = s.state AND g.city = s.city;
 
 
-/* ============================================================
+/* ==============================================
    STEP 8: VERIFY — Data Integrity Validation
-   ============================================================ */
+   ============================================== */
 
 /* Row counts must match staging exactly (9994) */
+
 SELECT
     (SELECT COUNT(*) FROM stg_superstore) AS staging_rows,
     (SELECT COUNT(*) FROM fact_sales)     AS fact_rows;
 
-/* Zero orphan rows expected — if any of these return > 0,
-   a JOIN condition above requires review */
+/* Zero orphan rows expected — if any of these return > 0, a JOIN condition above requires review */
+
 SELECT COUNT(*) FROM stg_superstore s
 LEFT JOIN dim_customer c ON c.customer_id = s.customer_id AND c.segment = s.segment
 WHERE c.customer_key IS NULL;
@@ -258,8 +255,8 @@ LEFT JOIN dim_geography_city g
    AND g.state = s.state AND g.city = s.city
 WHERE g.geography_key IS NULL;
 
-/* Total sales must match between staging and fact to confirm no
-   rows were dropped or duplicated during execution */
+/* Total sales must match between staging and fact to confirm no rows were dropped or duplicated during execution */
+
 SELECT
     (SELECT ROUND(SUM(sales),2) FROM stg_superstore) AS staging_total_sales,
     (SELECT ROUND(SUM(sales),2) FROM fact_sales)     AS fact_total_sales;
