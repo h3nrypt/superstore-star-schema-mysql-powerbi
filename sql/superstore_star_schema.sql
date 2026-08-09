@@ -13,8 +13,6 @@ USE superstore_dw;
 -- ------------------------------------------------------------
 -- STEP 1: STAGING TABLE
 -- Purpose: land the CSV exactly as it is, zero transformation.
--- Never build dimensions directly off a CSV import — if the
--- import fails halfway you want a raw copy to diagnose against.
 -- ------------------------------------------------------------
 DROP TABLE IF EXISTS stg_superstore;
 CREATE TABLE stg_superstore (
@@ -43,19 +41,6 @@ CREATE TABLE stg_superstore (
 
 -- ------------------------------------------------------------
 -- STEP 2: LOAD THE CSV — using LOAD DATA LOCAL INFILE
--- RFC-4180 compliant: handles quoted fields containing commas
--- and escaped quotes correctly, unlike the Import Wizard.
--- CHARACTER SET latin1 — this file is technically Windows-1252
--- encoded (confirmed: contains non-breaking spaces in some
--- product names). MySQL doesn't have a charset literally named
--- "cp1252" — its "latin1" charset is, by long-standing MySQL
--- convention, actually implemented as Windows-1252 under the
--- hood, not true ISO-8859-1. So latin1 here is correct, not a
--- fallback or approximation.
---
--- Dates arrive as text ('11/8/2016') so they're captured into
--- user variables (@order_date, @ship_date) and converted with
--- STR_TO_DATE on the way into the real DATE columns.
 -- ------------------------------------------------------------
 LOAD DATA LOCAL INFILE '/path/to/Sample_-_Superstore.csv'
 INTO TABLE stg_superstore
@@ -79,15 +64,7 @@ SELECT COUNT(*) FROM stg_superstore WHERE order_date IS NULL OR ship_date IS NUL
 
 -- ============================================================
 -- STEP 3: DIM_DATE
--- Rule: a Power BI date table must be CONTINUOUS — every single
--- calendar day between your earliest and latest date, even days
--- with zero sales. If you only insert dates that appear in the
--- data, time-intelligence DAX (SAMEPERIODLASTYEAR, date filters,
--- gap analysis) breaks silently. This is why we generate a full
--- calendar, not just DISTINCT order_date.
---
--- Column is named `date` per your spec (it's a MySQL reserved
--- word, so it's backtick-quoted everywhere it's used).
+-- Rule: a Power BI date table must be CONTINUOUS — every single calendar day between your earliest and latest date, even days with zero sales.
 -- ============================================================
 DROP TABLE IF EXISTS dim_date;
 CREATE TABLE dim_date (
