@@ -1,10 +1,8 @@
--- ============================================================
+-- ===============================================
 -- SUPERSTORE STAR SCHEMA — MySQL build script
 -- Method: Staging table -> Dimension tables -> Fact table
--- Author: built step-by-step, do not skip reading the comments
--- ============================================================
-
--- ------------------------------------------------------------
+-- Author: built step-by-step. 
+-- ===============================================
 -- STEP 0: Database
 -- ------------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS superstore_dw;
@@ -82,8 +80,6 @@ CREATE TABLE dim_date (
 -- Allow enough recursion for a multi-year date range
 SET SESSION cte_max_recursion_depth = 10000;
 
--- order_date/ship_date are real DATE columns now — MIN/MAX work
--- correctly without conversion.
 INSERT INTO dim_date (`date`)
 WITH RECURSIVE date_range AS (
     SELECT (SELECT MIN(order_date) FROM stg_superstore) AS dt
