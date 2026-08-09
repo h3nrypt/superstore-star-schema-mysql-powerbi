@@ -36,7 +36,7 @@ CREATE TABLE stg_superstore (
     profit        DECIMAL(10,4)
 );
 
-/* STEP 2: LOAD THE CSV — using LOAD DATA LOCAL INFILE */
+/* STEP 2: LOAD THE Csv -using LOAD DATA LOCAL INFILE */
 
 LOAD DATA LOCAL INFILE '/path/to/Sample_-_Superstore.csv'
 INTO TABLE stg_superstore
